@@ -61,7 +61,7 @@ services:
       - "7860:7860"
     volumes:
       - .:/app
-    command: python app/app.py
+    command: uvicorn app.api:app --host 0.0.0.0 --port 7860
     depends_on:
       - ollama
     deploy:
@@ -104,8 +104,8 @@ sentence-transformers
 faiss-gpu-cu12
 torch
 transformers
-accelerate
-gradio
+uvicorn
+fastapi
 ```
 
 ---
@@ -132,13 +132,13 @@ docker compose up
 
 啟動內容：
 - 啟動 Ollama 服務 (http://localhost:11434)
-- 啟動 Blender-RAG 查詢與交互網頁 (http://localhost:7860)
+- 啟動 Blender-RAG 查詢 api server (http://localhost:7860)
 
-## 👉 現在可以直接開啟瀏覽器使用！
+## 👉 現在可以透過 HTTP API 直接 POST 查詢！
 
 ---
 
-# 👍 小註意
+# 注意事項
 
 - 首次使用必須先執行 `build`
 - 若 Blender 手冊有更新，重新 `build`即可
@@ -154,7 +154,7 @@ docker compose up
 ```bash
 blender-rag-ai/
 ├── app/
-│   └── app.py            # Gradio交互網頁
+│   └── api.py            # 提供查詢 API
 ├── data/
 │   ├── raw_html/          # 原始 HTML 資料
 │   ├── cleaned_texts/     # 清理後的純文字

@@ -5,5 +5,5 @@ sentence-transformers
 faiss-gpu-cu12
 torch
 transformers
-accelerate
-gradio
+uvicorn
+fastapi

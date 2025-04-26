@@ -29,7 +29,7 @@ services:
       - "7860:7860"
     volumes:
       - .:/app
-    command: python app/app.py
+    command: uvicorn app.api:app --host 0.0.0.0 --port 7860
     depends_on:
       - ollama
     deploy:
