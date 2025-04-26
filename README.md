@@ -154,18 +154,21 @@ docker compose up
 ```bash
 blender-rag-ai/
 ├── app/
-│   └── api.py            # 提供查詢 API
+│   └── api.py       # 提供查詢 API
 ├── data/
-│   ├── raw_html/          # 原始 HTML 資料
-│   ├── cleaned_texts/     # 清理後的純文字
-│   └── faiss_index/       # FAISS 向量資料庫
+│   ├── html/        # 原始 HTML 資料
+│   ├── texts/       # 清理後的純文字
+│   └── index/       # FAISS 向量資料庫
 ├── scripts/
-│   ├── crawl_blender_manual.py   # 下載 Blender 手冊
-│   ├── clean_html_extract.py     # HTML 清理
-│   ├── build_embedding_index.py  # 建向量資料庫
-│   └── query_rag.py               # 查詢與組 Prompt
+│   ├── download.py  # 下載 Blender 官方手冊
+│   ├── clean.py     # HTML 清理成純文字
+│   ├── build.py     # 建向量資料庫
+│   └── query.py     # 查詢與組 Prompt
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
 └── README.md
 ```
+
+註：
+- [官方手冊](https://docs.blender.org/manual/en/latest/blender_manual_html.zip)
