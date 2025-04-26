@@ -97,7 +97,7 @@ COPY . .
 ## 🛠️ requirements.txt 概要
 
 ```text
-beautifulsoup4
+markdownify
 lxml
 requests
 sentence-transformers
