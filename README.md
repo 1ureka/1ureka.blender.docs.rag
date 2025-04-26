@@ -1,5 +1,11 @@
 # Blender-Manual-RAG-Assistant - 使用指南
 
+## 📖 什麼是 Blender-Manual-RAG-Assistant？
+
+Blender 官方的繁體中文手冊，大部分仍都是英文，就算會英文，想出英文關鍵字查詢文件困難又耗時。
+Blender-Manual-RAG-Assistant 讓你可以直接用繁體中文提問，
+快速從完整官方文件中找到答案，並以中文清楚回覆。
+
 ---
 
 ## 🖥️ 本地依賴需求（Windows）
@@ -132,9 +138,21 @@ docker compose up
 
 啟動內容：
 - 啟動 Ollama 服務 (http://localhost:11434)
-- 啟動 Blender-RAG 查詢 api server (http://localhost:7860)
+- 啟動 Blender-RAG 查詢 API server (http://localhost:7860)
+
+Blender-RAG 查詢 API server 工作流程：
+1. 接收使用者的中文問題
+2. 進行向量化（Embedding）
+3. 從 Blender 手冊中檢索最相關段落
+4. 組合成 Prompt，發送給本地的 Ollama 模型
+5. 取得模型回覆後，將中文回答回傳給使用者
 
 ## 👉 現在可以透過 HTTP API 直接 POST 查詢！
+比如使用 curl 指令：
+
+```bash
+curl -X POST "http://localhost:7860/query" -H "Content-Type: application/json" -d '{"question":"如何在 Blender 中使用鏡像？"}'
+```
 
 ---
 
@@ -162,7 +180,8 @@ blender-rag-ai/
 ├── scripts/
 │   ├── download.py  # 下載 Blender 官方手冊
 │   ├── clean.py     # HTML 清理成純文字
-│   ├── build.py     # 建向量資料庫
+│   ├── index.py     # 建立向量索引
+│   ├── build.py     # 整合處理流程
 │   └── query.py     # 查詢與組 Prompt
 ├── Dockerfile
 ├── docker-compose.yml
@@ -171,4 +190,4 @@ blender-rag-ai/
 ```
 
 註：
-- [官方手冊](https://docs.blender.org/manual/en/latest/blender_manual_html.zip)
+- [Blender 官方手冊](https://docs.blender.org/manual/en/latest/blender_manual_html.zip)
