@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+
+data/raw_html/
+data/cleaned_texts/
+data/faiss_index/

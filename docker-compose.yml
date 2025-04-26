@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  blender-rag-build:
+    build: .
+    profiles: ["build"]
+    volumes:
+      - .:/app
+    command: python scripts/build.py
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  blender-rag-deploy:
+    build: .
+    ports:
+      - "7860:7860"
+    volumes:
+      - .:/app
+    command: python app/app.py
+    depends_on:
+      - ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]

@@ -1,0 +1,9 @@
+beautifulsoup4
+lxml
+requests
+sentence-transformers
+faiss-gpu-cu12
+torch
+transformers
+accelerate
+gradio
