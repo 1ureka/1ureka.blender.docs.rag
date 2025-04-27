@@ -36,8 +36,6 @@ docker info | findstr /i nvidia
 ## 🛠️ docker-compose.yml 概要
 
 ```yaml
-version: "3.8"
-
 services:
   ollama:
     image: ollama/ollama
