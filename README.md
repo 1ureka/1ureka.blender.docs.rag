@@ -1,6 +1,4 @@
-# Blender-Manual-RAG-Assistant - 使用指南
-
-## 📖 什麼是 Blender-Manual-RAG-Assistant？
+# 什麼是 Blender-Manual-RAG-Assistant？
 
 Blender 官方的繁體中文手冊，大部分仍都是英文，就算會英文，想出英文關鍵字查詢文件困難又耗時。
 Blender-Manual-RAG-Assistant 讓你可以直接用繁體中文提問，
@@ -8,13 +6,13 @@ Blender-Manual-RAG-Assistant 讓你可以直接用繁體中文提問，
 
 ---
 
-## 🖥️ 本地依賴需求（Windows）
+# 本地依賴需求（Windows）
 
 - 安裝 [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)（建議安裝最新版）
 - 確認 Docker Desktop 設定啟用 WSL2
 （Settings → Resources → WSL integration → 勾選「Enable integration with my default WSL distro」）
 
-### 確認環境成功
+## 確認環境成功
 
 請分別執行以下指令，並比對輸出結果：
 
@@ -33,7 +31,7 @@ docker info | findstr /i nvidia
 
 ---
 
-## 🛠️ docker-compose.yml 概要
+# docker-compose.yml 概要
 
 ```yaml
 services:
@@ -82,7 +80,7 @@ services:
 
 ---
 
-## 🛠️ Dockerfile 概要
+# Dockerfile 概要
 
 ```Dockerfile
 FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
@@ -101,7 +99,7 @@ COPY . .
 
 ---
 
-## 🛠️ requirements.txt 概要
+# requirements.txt 概要
 
 ```text
 markdownify              # 將 HTML 轉換成純文字格式（Markdown）
@@ -118,7 +116,7 @@ fastapi                  # 高效能 API 框架
 
 ---
 
-# 🚀 使用流程
+# 使用流程
 
 ## 1. Build：建立資料
 
@@ -156,9 +154,7 @@ Blender-RAG 查詢 API server 工作流程：
 curl -X POST "http://localhost:7860/query" -H "Content-Type: application/json" -d '{"question":"如何在 Blender 中使用鏡像？"}'
 ```
 
----
-
-# 注意事項
+## 注意事項
 
 - 首次使用必須先執行 `build`
 - 若 Blender 手冊有更新，重新 `build`即可
@@ -169,7 +165,7 @@ curl -X POST "http://localhost:7860/query" -H "Content-Type: application/json" -
 
 ---
 
-# 💼 完整樹狀圖
+# 完整樹狀圖
 
 ```bash
 blender-rag-ai/
