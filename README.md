@@ -53,6 +53,7 @@ services:
     volumes:
       - .:/app
     command: python scripts/build.py
+    tty: true
     deploy:
       resources:
         reservations:
