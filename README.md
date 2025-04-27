@@ -181,6 +181,7 @@ blender-rag-ai/
 │   ├── download.py  # 下載 Blender 官方手冊
 │   ├── clean.py     # HTML 清理成純文字
 │   ├── index.py     # 建立向量索引
+│   ├── validate.py  # 驗證向量索引
 │   ├── build.py     # 整合處理流程
 │   └── query.py     # 查詢與組 Prompt
 ├── Dockerfile
