@@ -31,6 +31,66 @@ docker info | findstr /i nvidia
 
 ---
 
+# 使用流程
+
+## 1. Build：建立資料
+
+```bash
+docker compose --profile build up blender-rag-build
+```
+
+處理內容：
+- 下載 Blender 官方手冊
+- 清理 HTML 成純文字
+- 分段 (chunk)
+- 建立 FAISS 向量資料庫
+
+## 2. Deploy：啟動服務
+
+```bash
+docker compose up
+```
+
+啟動內容：
+- 啟動 Ollama 服務 (http://localhost:11434)
+- 啟動 Blender-RAG 查詢 API server (http://localhost:7860)
+
+Blender-RAG 查詢 API server 工作流程：
+1. 接收使用者的中文問題
+2. 進行向量化（Embedding）
+3. 從 Blender 手冊中檢索最相關段落
+4. 組合成 Prompt，發送給本地的 Ollama 模型
+5. 取得模型回覆後，將中文回答回傳給使用者
+
+## 3. 拉取模型
+
+第一次啟動時，Ollama 服務預設沒有任何模型，需要先拉取。
+
+程式碼預設使用的模型是：
+
+```
+gemma3:4b-it-q8_0
+```
+
+如果不更換模型，請直接向 [Ollama 的 API](https://github.com/ollama/ollama/blob/main/docs/api.md#pull-a-model) 發送以下請求：
+
+```bash
+curl -X POST http://localhost:11434/api/pull \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gemma3:4b-it-q8_0"}'
+```
+
+如果想更換其他模型：
+- 請參考 Ollama 官方的[模型列表](https://ollama.com/search)
+- 並修改 `scripts/query.py` 檔案中的 `OLLAMA_MODEL` 變數。
+
+## 注意事項
+
+- 首次使用必須先執行 `build`
+- 若 Blender 手冊有更新，重新 `build`即可
+
+---
+
 # docker-compose.yml 概要
 
 ```yaml
@@ -39,6 +99,8 @@ services:
     image: ollama/ollama
     ports:
       - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
     deploy:
       resources:
         reservations:
@@ -113,55 +175,6 @@ transformers
 uvicorn                  # 輕量級 ASGI 伺服器
 fastapi                  # 高效能 API 框架
 ```
-
----
-
-# 使用流程
-
-## 1. Build：建立資料
-
-```bash
-docker compose --profile build up blender-rag-build
-```
-
-處理內容：
-- 下載 Blender 官方手冊
-- 清理 HTML 成純文字
-- 分段 (chunk)
-- 建立 FAISS 向量資料庫
-
-## 2. Deploy：啟動服務
-
-```bash
-docker compose up
-```
-
-啟動內容：
-- 啟動 Ollama 服務 (http://localhost:11434)
-- 啟動 Blender-RAG 查詢 API server (http://localhost:7860)
-
-Blender-RAG 查詢 API server 工作流程：
-1. 接收使用者的中文問題
-2. 進行向量化（Embedding）
-3. 從 Blender 手冊中檢索最相關段落
-4. 組合成 Prompt，發送給本地的 Ollama 模型
-5. 取得模型回覆後，將中文回答回傳給使用者
-
-## 👉 現在可以透過 HTTP API 直接 POST 查詢！
-比如使用 curl 指令：
-
-```bash
-curl -X POST "http://localhost:7860/query" -H "Content-Type: application/json" -d '{"question":"如何在 Blender 中使用鏡像？"}'
-```
-
-## 注意事項
-
-- 首次使用必須先執行 `build`
-- 若 Blender 手冊有更新，重新 `build`即可
-- 如需切換模型，可在 Ollama 對應指令：
-  ```bash
-  docker exec -it ollama ollama run llama3
-  ```
 
 ---
 
