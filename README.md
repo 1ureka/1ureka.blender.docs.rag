@@ -102,15 +102,16 @@ COPY . .
 ## 🛠️ requirements.txt 概要
 
 ```text
-markdownify
-lxml
-requests
-sentence-transformers
-faiss-gpu-cu12
+markdownify              # 將 HTML 轉換成純文字格式（Markdown）
+lxml                     # 解析與處理 HTML/XML
+requests                 # 下載 Blender 官方手冊 ZIP 檔案
+hf_xet                   # 加速 Hugging Face 模型下載（可選）
+sentence-transformers    # 中文/多語言向量化（Embedding）
+faiss-gpu-cu12           # GPU 加速的向量搜尋資料庫 FAISS
 torch
 transformers
-uvicorn
-fastapi
+uvicorn                  # 輕量級 ASGI 伺服器
+fastapi                  # 高效能 API 框架
 ```
 
 ---

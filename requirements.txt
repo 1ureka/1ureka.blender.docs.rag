@@ -1,6 +1,7 @@
 markdownify
 lxml
 requests
+hf_xet
 sentence-transformers
 faiss-gpu-cu12
 torch
