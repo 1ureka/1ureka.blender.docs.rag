@@ -24,7 +24,7 @@ DATA_DIR = BASE_DIR / "data"
 INDEX_DIR = DATA_DIR / "index"
 
 # 設定驗證參數
-TOP_K = 5  # 每次查詢返回的最相關結果數量
+TOP_K = 10  # 每次查詢返回的最相關結果數量
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"  # 與 index.py 中相同的模型
 
 # 測試查詢列表 (中英文混合)
