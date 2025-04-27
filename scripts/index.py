@@ -153,6 +153,7 @@ def create_vector_index(chunks: List[Dict[str, str]], model: SentenceTransformer
     start_time = time.time()
     total_chunks = len(chunks)
     batch_size = 32  # 向量化的批次大小
+    last_log_time = start_time  # 記錄上次輸出日誌的時間
 
     # 提取所有文本內容
     texts = [chunk["content"] for chunk in chunks]
@@ -171,9 +172,14 @@ def create_vector_index(chunks: List[Dict[str, str]], model: SentenceTransformer
         embeddings_per_sec = processed / elapsed if elapsed > 0 else 0
         remaining = (total_chunks - processed) / embeddings_per_sec if embeddings_per_sec > 0 else 0
         percent = int(100 * processed / total_chunks)
-        print(f"\r向量化進度: {percent}% [{processed}/{total_chunks}] 速度: {embeddings_per_sec:.1f} 向量/秒, 預估剩餘時間: {int(remaining)}秒", end="")
 
-    print("\n向量化完成")
+        # 每10秒記錄新的一行進度，或者達到100%時
+        current_time = time.time()
+        if current_time - last_log_time >= 10 or processed >= total_chunks:
+            print(f"向量化進度: {percent}% [{processed}/{total_chunks}] 速度: {embeddings_per_sec:.1f} 向量/秒, 預估剩餘時間: {int(remaining)}秒")
+            last_log_time = current_time
+
+    print("向量化完成")
 
     # 將嵌入轉換為numpy數組並標準化
     embeddings = np.array(embeddings).astype('float32')
@@ -237,6 +243,7 @@ def main():
     failed = 0
     all_chunks = []
     start_time = time.time()
+    last_log_time = start_time  # 記錄上次輸出日誌的時間
 
     # 使用多線程處理檔案
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
@@ -264,9 +271,14 @@ def main():
 
             # 更新進度顯示
             percent = int(100 * processed / total_files)
-            print(f"\r處理進度: {percent}% [{processed}/{total_files}] 速度: {files_per_sec:.1f} 檔案/秒, 預估剩餘時間: {int(remaining)}秒", end="")
 
-    print("\n分段處理完成")
+            # 每10秒記錄新的一行進度，或者達到100%時
+            current_time = time.time()
+            if current_time - last_log_time >= 10 or processed >= total_files:
+                print(f"處理進度: {percent}% [{processed}/{total_files}] 速度: {files_per_sec:.1f} 檔案/秒, 預估剩餘時間: {int(remaining)}秒")
+                last_log_time = current_time
+
+    print("分段處理完成")
     print(f"成功處理: {success} 個檔案")
     print(f"處理失敗: {failed} 個檔案")
     print(f"總分段數: {len(all_chunks)}")

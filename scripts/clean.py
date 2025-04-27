@@ -125,6 +125,7 @@ def process_files():
     success = 0
     failed = 0
     start_time = time.time()
+    last_log_time = start_time  # 記錄上次輸出日誌的時間
 
     # 使用多線程處理檔案
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
@@ -146,10 +147,15 @@ def process_files():
 
             # 更新進度顯示
             percent = int(100 * processed / total_files)
-            print(f"\r處理進度: {percent}% [{processed}/{total_files}] 速度: {files_per_sec:.1f} 檔案/秒, 預估剩餘時間: {int(remaining)}秒", end="")
+
+            # 每10秒記錄新的一行進度，或者達到100%時
+            current_time = time.time()
+            if current_time - last_log_time >= 10 or processed >= total_files:
+                print(f"處理進度: {percent}% [{processed}/{total_files}] 速度: {files_per_sec:.1f} 檔案/秒, 預估剩餘時間: {int(remaining)}秒")
+                last_log_time = current_time
 
     # 處理完成
-    print("\n處理完成")
+    print("處理完成")
     print(f"成功轉換: {success} 個檔案")
     print(f"處理失敗: {failed} 個檔案")
     print(f"總處理時間: {time.time() - start_time:.2f} 秒")

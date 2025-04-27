@@ -12,6 +12,7 @@ import os
 import requests
 import zipfile
 import shutil
+import time
 from pathlib import Path
 
 # 官方手冊下載URL
@@ -53,13 +54,21 @@ def download_manual():
                 print("下載完成")
             else:
                 downloaded = 0
+                last_log_time = time.time()  # 記錄上次輸出日誌的時間
+
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
                         downloaded += len(chunk)
                         percent = int(100 * downloaded / total_size)
-                        print(f"\r下載進度: {percent}% [{downloaded}/{total_size} bytes]", end="")
-                print("\n下載完成")
+
+                        # 每10秒記錄新的一行進度，或者達到100%時
+                        current_time = time.time()
+                        if current_time - last_log_time >= 10 or percent >= 100:
+                            print(f"下載進度: {percent}% [{downloaded}/{total_size} bytes]")
+                            last_log_time = current_time
+
+                print("下載完成")
 
         return True
     except Exception as e:
