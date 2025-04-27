@@ -14,7 +14,7 @@ import os
 import time
 import shutil
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from markdownify import markdownify as md
 from bs4 import BeautifulSoup
 
@@ -128,7 +128,7 @@ def process_files():
     last_log_time = start_time  # 記錄上次輸出日誌的時間
 
     # 使用多線程處理檔案
-    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
         # 提交所有任務
         future_to_file = {executor.submit(html_to_text, html_file): html_file for html_file in html_files}
 
