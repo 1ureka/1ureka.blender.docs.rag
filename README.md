@@ -187,7 +187,8 @@ blender-rag-ai/
 ├── data/
 │   ├── html/        # 原始 HTML 資料
 │   ├── texts/       # 清理後的純文字
-│   └── index/       # FAISS 向量資料庫
+│   ├── index/       # FAISS 向量資料庫
+│   └── ollama/      # Ollama 模型資料
 ├── scripts/
 │   ├── download.py  # 下載 Blender 官方手冊
 │   ├── clean.py     # HTML 清理成純文字
