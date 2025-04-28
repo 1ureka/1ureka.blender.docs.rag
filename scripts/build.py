@@ -5,10 +5,10 @@
 build.py - Blender手冊RAG系統資料建立整合腳本
 
 此腳本整合了完整的資料處理流程，依序執行：
-1. 下載Blender官方手冊 (download.py)
-2. 清理HTML成純文字 (clean.py)
-3. 建立向量索引 (index.py)
-4. 驗證向量索引 (validate.py)
+1. 下載Blender官方手冊
+2. 清理HTML成純文字
+3. 建立向量索引
+4. 驗證向量索引
 
 作為一站式解決方案，這個腳本可以從頭開始建立整個RAG系統所需的資料。
 """
