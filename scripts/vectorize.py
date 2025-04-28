@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-index.py - 為Blender官方手冊建立向量索引
+vectorize.py - 為Blender官方手冊建立向量索引
 
 此腳本讀取data/texts資料夾中的純文字檔案，
 將文件分段(chunk)以便於檢索，
@@ -18,10 +18,6 @@ import json
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
-
-# 導入向量化和索引所需的庫
-import numpy as np
-import faiss
 
 # 導入專用模型加載模塊
 from . import model_embedding
@@ -136,82 +132,24 @@ def process_file(text_file: Path) -> List[Dict[str, str]]:
     return chunks
 
 
-def create_vector_index(chunks: List[Dict[str, str]]):
+def vectorize_text_chunks(chunks: List[Dict[str, str]]):
     """為文本塊創建向量索引"""
     print(f"開始為 {len(chunks)} 個文本塊建立向量索引...")
 
     # 確保索引目錄存在
     ensure_directories()
 
-    # 載入嵌入模型
-    embedding_model = model_embedding.load_model()
-    if not embedding_model:
-        print("無法載入嵌入模型")
+    # 向量化文本塊
+    try:
+        texts = [chunk["content"] for chunk in chunks]
+        embeddings = model_embedding.encode_text(texts)
+        print(f"成功向量化 {len(embeddings)} 個文本塊")
+    except Exception as e:
+        print(f"建立向量索引時發生錯誤: {e}")
         return False
 
-    # 建立進度追蹤變數
-    start_time = time.time()
-    total_chunks = len(chunks)
-    batch_size = 32  # 向量化的批次大小
-    last_log_time = start_time  # 記錄上次輸出日誌的時間
-
-    # 提取所有文本內容
-    texts = [chunk["content"] for chunk in chunks]
-
-    # 批次處理向量化以節省內存
-    embeddings = []
-    for i in range(0, total_chunks, batch_size):
-        batch_texts = texts[i : i + batch_size]
-        batch_embeddings = model_embedding.encode_text(batch_texts, show_progress=False)
-
-        embeddings.extend(batch_embeddings)
-
-        # 顯示進度
-        processed = min(i + batch_size, total_chunks)
-        elapsed = time.time() - start_time
-        embeddings_per_sec = processed / elapsed if elapsed > 0 else 0
-        remaining = (total_chunks - processed) / embeddings_per_sec if embeddings_per_sec > 0 else 0
-        percent = int(100 * processed / total_chunks)
-
-        # 每10秒記錄新的一行進度，或者達到100%時
-        current_time = time.time()
-        if current_time - last_log_time >= 10 or processed >= total_chunks:
-            print(
-                f"向量化進度: {percent}% [{processed}/{total_chunks}] 速度: {embeddings_per_sec:.1f} 向量/秒, 預估剩餘時間: {int(remaining)}秒"
-            )
-            last_log_time = current_time
-
-    print("向量化完成")
-
-    # 將嵌入轉換為numpy數組並標準化
-    embeddings = np.array(embeddings).astype("float32")
-    faiss.normalize_L2(embeddings)
-
-    # 建立FAISS索引
-    print("建立FAISS索引...")
-    vector_dimension = embeddings.shape[1]
-
-    # 使用 IndexFlatIP 可以進行餘弦相似度匹配
-    index = faiss.IndexFlatIP(vector_dimension)
-
-    # 檢查是否有可用的GPU資源
-    gpu_res = model_faiss.get_gpu_resources()
-    if gpu_res is not None:
-        print("檢測到GPU資源，使用GPU加速索引...")
-        # 將索引複製到GPU
-        index = faiss.index_cpu_to_gpu(gpu_res, 0, index)
-
-    # 添加向量到索引
-    index.add(embeddings)
-
-    # 如果是GPU索引，需要先轉回CPU才能保存
-    if isinstance(index, faiss.GpuIndexFlat):
-        print("將索引從GPU移回CPU以保存...")
-        index = faiss.index_gpu_to_cpu(index)
-
-    # 保存索引
-    print(f"保存索引到 {INDEX_DIR / 'faiss.index'}")
-    faiss.write_index(index, str(INDEX_DIR / "faiss.index"))
+    # 創建索引
+    model_faiss.create_index(embeddings)
 
     # 保存文本塊數據
     print(f"保存文本塊數據到 {INDEX_DIR / 'chunks.json'}")
@@ -287,7 +225,7 @@ def main():
     print(f"總分段數: {len(all_chunks)}")
 
     # 建立向量索引
-    result = create_vector_index(all_chunks)
+    result = vectorize_text_chunks(all_chunks)
 
     if result:
         print("=== 向量索引建立完成 ===")

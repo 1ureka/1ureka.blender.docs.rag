@@ -6,6 +6,7 @@ model_faiss.py - FAISS索引加載與管理模組
 
 此模組負責載入和初始化FAISS向量索引，
 提供GPU加速支援，同時管理索引和文本塊數據的載入與查詢功能。
+也提供建立向量索引的功能。
 """
 
 import json
@@ -95,6 +96,48 @@ def load_model() -> Tuple[Optional[Any], Optional[List[Dict[str, Any]]]]:
     except Exception as e:
         print(f"載入索引或文本塊資料時發生錯誤: {e}")
         return None, None
+
+
+def create_index(embeddings: np.ndarray) -> bool:
+    """為文本塊創建向量索引
+
+    Args:
+        embeddings (np.ndarray): 文本塊的嵌入向量，形狀為(n_chunks, vector_dimension)
+        chunks (List[Dict[str, str]]): 包含文本內容和來源的文本塊列表
+
+    Returns:
+        bool: 索引創建是否成功
+    """
+    # 確保索引目錄存在
+    INDEX_DIR.mkdir(exist_ok=True, parents=True)
+
+    # 將嵌入轉換為numpy數組並標準化
+    embeddings = np.array(embeddings).astype("float32")
+    faiss.normalize_L2(embeddings)
+
+    # 建立FAISS索引
+    print("建立FAISS索引...")
+    vector_dimension = embeddings.shape[1]
+    index = faiss.IndexFlatIP(vector_dimension)
+
+    # 檢查是否有可用的GPU資源
+    gpu_res = get_gpu_resources()
+    if gpu_res is not None:
+        print("檢測到GPU資源，使用GPU加速索引...")
+        index = faiss.index_cpu_to_gpu(gpu_res, 0, index)
+
+    # 添加向量到索引
+    index.add(embeddings)
+
+    # 保存索引
+    if isinstance(index, faiss.GpuIndexFlat):
+        print("將索引從GPU移回CPU以保存...")
+        index = faiss.index_gpu_to_cpu(index)
+
+    print(f"保存索引到 {INDEX_DIR / 'faiss.index'}")
+    faiss.write_index(index, str(INDEX_DIR / "faiss.index"))
+
+    return True
 
 
 def query_index(query_vector: np.ndarray, top_k: int = TOP_K) -> List[Dict[str, Any]]:
