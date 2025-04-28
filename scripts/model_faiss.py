@@ -20,6 +20,7 @@ import faiss
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 INDEX_DIR = DATA_DIR / "index"
+TEXT_DIR = DATA_DIR / "texts"
 
 # 每次查詢返回的最相關結果數量
 TOP_K = 10
@@ -140,7 +141,7 @@ def create_index(embeddings: np.ndarray) -> bool:
 
 
 def query_index(query_vector: np.ndarray, top_k: int = TOP_K) -> List[Dict[str, Any]]:
-    """使用查詢向量檢索最相關的文本塊
+    """使用查詢向量檢索最相關的文本
 
     Args:
         query_vector (np.ndarray): 查詢的向量，形狀為(1, 向量維度)
@@ -157,15 +158,32 @@ def query_index(query_vector: np.ndarray, top_k: int = TOP_K) -> List[Dict[str, 
     faiss.normalize_L2(query_vector)
     distances, indices = index.search(query_vector, top_k)
 
-    # 獲取對應的文本塊
-    results = []
+    # 建立來源路徑到相似度的映射
+    similarity_map = {}
     for i, idx in enumerate(indices[0]):
-        if 0 <= idx < len(chunks):
-            result = {
-                "content": chunks[idx]["content"],
-                "source": chunks[idx]["source"],
-                "similarity": float(distances[0][i]),  # 轉換為Python浮點數以便JSON序列化
-            }
-            results.append(result)
+        if idx < 0 or idx >= len(chunks):
+            continue
 
-    return results
+        source = chunks[idx]["source"]
+        similarity = float(distances[0][i])
+        txt_path = str(TEXT_DIR / source)
+
+        # 只記錄檔案存在的來源
+        if Path(txt_path).exists():
+            similarity_map[txt_path] = similarity
+
+    # 處理文本檔案並建立最終結果
+    final_results = []
+    for txt_path, similarity in similarity_map.items():
+        try:
+            with open(txt_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            name = Path(txt_path).name
+            content = str(content)[:4500]  # 限制內容長度
+            final_results.append({"file": name, "content": content, "similarity": similarity})
+
+        except Exception as e:
+            print(f"處理HTML檔案 {txt_path} 時出錯: {e}")
+
+    return final_results

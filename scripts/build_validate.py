@@ -32,7 +32,7 @@ TEST_QUERIES = [
 ]
 
 
-def retrieve_relevant_chunks(query: str):
+def retrieve_relevant_texts(query: str):
     """對查詢進行向量化，並查詢索引"""
     try:
         start_time = time.time()
@@ -70,7 +70,7 @@ def validate_index():
     for i, query in enumerate(TEST_QUERIES):
         print(f"\n測試查詢 {i + 1}/{len(TEST_QUERIES)}: '{query}'")
 
-        results, query_time = retrieve_relevant_chunks(query)
+        results, query_time = retrieve_relevant_texts(query)
         total_time += query_time
 
         if not results:
@@ -84,11 +84,11 @@ def validate_index():
         if results:
             content = results[0]["content"]
             preview = content[:150] + "..." if len(content) > 150 else content
-            source = results[0]["source"]
+            file = results[0]["file"]
             similarity = results[0]["similarity"]
 
             print(f"  最相關結果 (相似度: {similarity:.4f}):")
-            print(f"  來源: {source}")
+            print(f"  來源: {file}")
             print(f"  內容預覽: {preview}")
 
     # 計算平均查詢時間
