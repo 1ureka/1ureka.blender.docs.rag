@@ -19,10 +19,10 @@ from pathlib import Path
 
 # 匯入其他模組
 sys.path.append(str(Path(__file__).resolve().parent))
-import download
-import clean
-import vectorize
-import validate
+import build_download
+import build_clean
+import build_vectorize
+import build_validate
 
 
 def print_section_header(title):
@@ -41,25 +41,25 @@ def main():
 
     # 步驟 1: 下載 Blender 官方手冊
     print_section_header("步驟 1/4: 下載 Blender 官方手冊")
-    if not download.main():
+    if not build_download.main():
         print("錯誤: 下載手冊失敗，處理中止")
         return False
 
     # 步驟 2: 清理 HTML 成純文字
     print_section_header("步驟 2/4: 清理 HTML 成純文字")
-    if not clean.main():
+    if not build_clean.main():
         print("錯誤: 清理 HTML 失敗，處理中止")
         return False
 
     # 步驟 3: 建立向量索引
     print_section_header("步驟 3/4: 建立向量索引")
-    if not vectorize.main():
+    if not build_vectorize.main():
         print("錯誤: 建立索引失敗，處理中止")
         return False
 
     # 步驟 4: 驗證向量索引
     print_section_header("步驟 4/4: 驗證向量索引")
-    if not validate.main():
+    if not build_validate.main():
         print("警告: 向量索引驗證未完全通過，但處理將繼續")
         # 僅警告但不中止流程，因為即使部分查詢失敗，索引可能仍然可用
 
