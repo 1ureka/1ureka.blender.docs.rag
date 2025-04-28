@@ -32,7 +32,7 @@ TEST_QUERIES = [
 ]
 
 
-def query_index(query):
+def retrieve_relevant_chunks(query: str):
     """對查詢進行向量化，並查詢索引"""
     try:
         start_time = time.time()
@@ -70,7 +70,7 @@ def validate_index():
     for i, query in enumerate(TEST_QUERIES):
         print(f"\n測試查詢 {i + 1}/{len(TEST_QUERIES)}: '{query}'")
 
-        results, query_time = query_index(query)
+        results, query_time = retrieve_relevant_chunks(query)
         total_time += query_time
 
         if not results:
