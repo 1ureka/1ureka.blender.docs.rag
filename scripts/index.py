@@ -21,8 +21,11 @@ from typing import List, Dict
 
 # 導入向量化和索引所需的庫
 import numpy as np
-from sentence_transformers import SentenceTransformer
 import faiss
+
+# 導入專用模型加載模塊
+from . import model_embedding
+from . import model_faiss
 
 # 設定資料路徑
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -35,8 +38,6 @@ CHUNK_SIZE = 500  # 每個分段的字符數
 CHUNK_OVERLAP = 50  # 分段間的重疊字符數
 MAX_CHUNKS_PER_FILE = 1000  # 每個檔案最多處理的分段數，防止極大檔案
 
-# 使用多語言模型，支援中英文
-MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"  # 支援中英文的多語言模型
 
 def ensure_directories():
     """確保所需的資料夾存在"""
@@ -50,14 +51,16 @@ def ensure_directories():
 
     INDEX_DIR.mkdir(exist_ok=True)
 
+
 def load_text_file(file_path: Path) -> str:
     """載入純文字檔案內容"""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
     except Exception as e:
         print(f"讀取檔案 {file_path} 時發生錯誤: {e}")
         return ""
+
 
 def chunk_text(text: str, file_path: str) -> List[Dict[str, str]]:
     """將文本分割成較小的塊"""
@@ -71,7 +74,7 @@ def chunk_text(text: str, file_path: str) -> List[Dict[str, str]]:
     file_path = str(file_path)
 
     # 將文本按段落分割
-    paragraphs = text.split('\n\n')
+    paragraphs = text.split("\n\n")
     current_chunk = ""
 
     for paragraph in paragraphs:
@@ -79,20 +82,14 @@ def chunk_text(text: str, file_path: str) -> List[Dict[str, str]]:
         if len(paragraph) > CHUNK_SIZE:
             # 如果當前塊不為空，先添加當前塊
             if current_chunk:
-                chunks.append({
-                    "content": current_chunk.strip(),
-                    "source": file_path
-                })
+                chunks.append({"content": current_chunk.strip(), "source": file_path})
                 current_chunk = ""
 
             # 處理長段落
             for i in range(0, len(paragraph), CHUNK_SIZE - CHUNK_OVERLAP):
-                chunk = paragraph[i:i + CHUNK_SIZE]
+                chunk = paragraph[i : i + CHUNK_SIZE]
                 if chunk:
-                    chunks.append({
-                        "content": chunk.strip(),
-                        "source": file_path
-                    })
+                    chunks.append({"content": chunk.strip(), "source": file_path})
 
                 if len(chunks) >= MAX_CHUNKS_PER_FILE:
                     print(f"警告: 檔案 {file_path} 分段數達到上限 {MAX_CHUNKS_PER_FILE}")
@@ -101,10 +98,7 @@ def chunk_text(text: str, file_path: str) -> List[Dict[str, str]]:
         # 如果加上新段落後長度超過限制，保存當前塊並創建新塊
         elif len(current_chunk) + len(paragraph) + 2 > CHUNK_SIZE:  # +2 for '\n\n'
             if current_chunk:
-                chunks.append({
-                    "content": current_chunk.strip(),
-                    "source": file_path
-                })
+                chunks.append({"content": current_chunk.strip(), "source": file_path})
             current_chunk = paragraph
 
         # 否則，將段落添加到當前塊
@@ -116,20 +110,19 @@ def chunk_text(text: str, file_path: str) -> List[Dict[str, str]]:
 
     # 添加最後一個塊
     if current_chunk:
-        chunks.append({
-            "content": current_chunk.strip(),
-            "source": file_path
-        })
+        chunks.append({"content": current_chunk.strip(), "source": file_path})
 
     return chunks
+
 
 def find_text_files(directory: Path) -> List[Path]:
     """遞迴尋找所有文字檔案"""
     text_files = []
-    for path in directory.rglob('*.txt'):
+    for path in directory.rglob("*.txt"):
         if path.is_file():
             text_files.append(path)
     return text_files
+
 
 def process_file(text_file: Path) -> List[Dict[str, str]]:
     """處理單個檔案的分段"""
@@ -142,12 +135,19 @@ def process_file(text_file: Path) -> List[Dict[str, str]]:
     chunks = chunk_text(content, str(rel_path))
     return chunks
 
-def create_vector_index(chunks: List[Dict[str, str]], model: SentenceTransformer):
+
+def create_vector_index(chunks: List[Dict[str, str]]):
     """為文本塊創建向量索引"""
     print(f"開始為 {len(chunks)} 個文本塊建立向量索引...")
 
     # 確保索引目錄存在
     ensure_directories()
+
+    # 載入嵌入模型
+    embedding_model = model_embedding.load_model()
+    if not embedding_model:
+        print("無法載入嵌入模型")
+        return False
 
     # 建立進度追蹤變數
     start_time = time.time()
@@ -161,8 +161,8 @@ def create_vector_index(chunks: List[Dict[str, str]], model: SentenceTransformer
     # 批次處理向量化以節省內存
     embeddings = []
     for i in range(0, total_chunks, batch_size):
-        batch_texts = texts[i:i + batch_size]
-        batch_embeddings = model.encode(batch_texts, show_progress_bar=False)
+        batch_texts = texts[i : i + batch_size]
+        batch_embeddings = model_embedding.encode_text(batch_texts, show_progress=False)
 
         embeddings.extend(batch_embeddings)
 
@@ -176,13 +176,15 @@ def create_vector_index(chunks: List[Dict[str, str]], model: SentenceTransformer
         # 每10秒記錄新的一行進度，或者達到100%時
         current_time = time.time()
         if current_time - last_log_time >= 10 or processed >= total_chunks:
-            print(f"向量化進度: {percent}% [{processed}/{total_chunks}] 速度: {embeddings_per_sec:.1f} 向量/秒, 預估剩餘時間: {int(remaining)}秒")
+            print(
+                f"向量化進度: {percent}% [{processed}/{total_chunks}] 速度: {embeddings_per_sec:.1f} 向量/秒, 預估剩餘時間: {int(remaining)}秒"
+            )
             last_log_time = current_time
 
     print("向量化完成")
 
     # 將嵌入轉換為numpy數組並標準化
-    embeddings = np.array(embeddings).astype('float32')
+    embeddings = np.array(embeddings).astype("float32")
     faiss.normalize_L2(embeddings)
 
     # 建立FAISS索引
@@ -193,14 +195,11 @@ def create_vector_index(chunks: List[Dict[str, str]], model: SentenceTransformer
     index = faiss.IndexFlatIP(vector_dimension)
 
     # 檢查是否有可用的GPU資源
-    try:
-        res = faiss.StandardGpuResources()  # 初始化GPU資源
+    gpu_res = model_faiss.get_gpu_resources()
+    if gpu_res is not None:
         print("檢測到GPU資源，使用GPU加速索引...")
         # 將索引複製到GPU
-        index = faiss.index_cpu_to_gpu(res, 0, index)
-    except Exception as e:
-        print(f"無法使用GPU加速: {e}")
-        print("使用CPU繼續處理...")
+        index = faiss.index_cpu_to_gpu(gpu_res, 0, index)
 
     # 添加向量到索引
     index.add(embeddings)
@@ -216,10 +215,12 @@ def create_vector_index(chunks: List[Dict[str, str]], model: SentenceTransformer
 
     # 保存文本塊數據
     print(f"保存文本塊數據到 {INDEX_DIR / 'chunks.json'}")
-    with open(INDEX_DIR / "chunks.json", 'w', encoding='utf-8') as f:
+    with open(INDEX_DIR / "chunks.json", "w", encoding="utf-8") as f:
         json.dump(chunks, f, ensure_ascii=False, indent=2)
 
     print(f"索引創建完成，共包含 {len(chunks)} 個文本塊的向量")
+    return True
+
 
 def main():
     """主函數"""
@@ -275,7 +276,9 @@ def main():
             # 每10秒記錄新的一行進度，或者達到100%時
             current_time = time.time()
             if current_time - last_log_time >= 10 or processed >= total_files:
-                print(f"處理進度: {percent}% [{processed}/{total_files}] 速度: {files_per_sec:.1f} 檔案/秒, 預估剩餘時間: {int(remaining)}秒")
+                print(
+                    f"處理進度: {percent}% [{processed}/{total_files}] 速度: {files_per_sec:.1f} 檔案/秒, 預估剩餘時間: {int(remaining)}秒"
+                )
                 last_log_time = current_time
 
     print("分段處理完成")
@@ -283,22 +286,16 @@ def main():
     print(f"處理失敗: {failed} 個檔案")
     print(f"總分段數: {len(all_chunks)}")
 
-    # 載入多語言模型
-    print(f"載入多語言向量模型 {MODEL_NAME}...")
-    try:
-        import torch
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model = SentenceTransformer(MODEL_NAME, device=device)
-        print(f"模型載入成功，使用裝置：{device}")
-    except Exception as e:
-        print(f"載入模型時發生錯誤: {e}")
-        return False
-
     # 建立向量索引
-    create_vector_index(all_chunks, model)
+    result = create_vector_index(all_chunks)
 
-    print("=== 向量索引建立完成 ===")
-    return True
+    if result:
+        print("=== 向量索引建立完成 ===")
+    else:
+        print("=== 向量索引建立失敗 ===")
+
+    return result
+
 
 if __name__ == "__main__":
     main()
