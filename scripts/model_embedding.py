@@ -4,8 +4,7 @@
 """
 model_embedding.py - 向量嵌入模型加載模組
 
-此模組負責載入和初始化文本向量化的模型，
-提供GPU加速支援，在系統啟動時預先載入模型以加速後續操作。
+此模組負責載入和初始化文本向量化的模型。
 """
 
 from typing import Optional
@@ -19,9 +18,7 @@ _model = None
 
 
 def load_model() -> Optional[SentenceTransformer]:
-    """
-    載入多語言向量模型，支援GPU加速
-    """
+    """載入多語言向量模型，支援GPU加速"""
     global _model
 
     # 如果模型已載入，直接返回
@@ -45,15 +42,7 @@ def load_model() -> Optional[SentenceTransformer]:
 
 
 def encode_text(texts):
-    """將文本編碼為向量
-
-    Args:
-        texts: 要編碼的文本或文本列表
-        show_progress: 是否顯示進度條
-
-    Returns:
-        編碼後的向量
-    """
+    """將文本編碼為向量"""
     model = load_model()
     if model is None:
         raise RuntimeError("模型載入失敗，無法編碼文本")

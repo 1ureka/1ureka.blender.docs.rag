@@ -103,7 +103,6 @@ def create_index(embeddings: np.ndarray) -> bool:
 
     Args:
         embeddings (np.ndarray): 文本塊的嵌入向量，形狀為(n_chunks, vector_dimension)
-        chunks (List[Dict[str, str]]): 包含文本內容和來源的文本塊列表
 
     Returns:
         bool: 索引創建是否成功
