@@ -9,7 +9,7 @@ api.py - Blender手冊RAG系統的API服務
 啟動完成前，會禁止回應，並且透過/status可知道目前是否準備完成。
 """
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -88,25 +88,26 @@ async def check_status():
     }
 
 
-@app.post("/query")
-async def handle_query(request: QueryRequest):
+@app.get("/query")
+async def handle_query(
+    question: str = Query(..., description="提問問題"), model: str = Query("gemma3:4b-it-q8_0", description="使用模型")
+):
     """處理Blender手冊查詢請求"""
     # 檢查服務是否就緒
     if not SERVICE_READY:
         raise HTTPException(status_code=503, detail="服務正在初始化中，請稍後再試")
 
     # 檢查查詢文本是否為空
-    if not request.question or request.question.strip() == "":
+    if not question or question.strip() == "":
         raise HTTPException(status_code=400, detail="查詢內容不能為空")
 
     # 處理查詢
     try:
-
+        # 將每個文本塊轉換為SSE格式的事件
         def stream_response():
-            # 使用正確的模型名稱
-            for text_chunk in query.process_query(request.question, request.model):
-                # 將每個文本塊轉換為SSE格式的事件
-                yield f"data: {text_chunk}\n\n"
+            for text_chunk in query.process_query(question, model):
+                safe_chunk = text_chunk.replace("\n", "\\n")
+                yield f"data: {safe_chunk}\n\n"
 
         # 返回流式響應
         return StreamingResponse(stream_response(), media_type="text/event-stream")
