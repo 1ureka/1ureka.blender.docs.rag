@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer
 # 使用多語言模型，支援中英文
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"  # 支援中英文的多語言模型
 
-# 全局變數用於緩存已載入的模型
+# 全局變數用於快取已載入的模型
 _model = None
 
 
@@ -36,7 +36,7 @@ def load_model() -> Optional[SentenceTransformer]:
         model = SentenceTransformer(MODEL_NAME, device=device)
         print(f"向量模型載入成功，使用裝置：{device}")
 
-        # 緩存模型
+        # 快取模型
         _model = model
         return model
     except Exception as e:
