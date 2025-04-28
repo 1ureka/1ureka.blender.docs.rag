@@ -17,6 +17,8 @@ services:
     volumes:
       - .:/app
     command: python scripts/build.py
+    environment:
+      - PYTHONPATH=/app
     tty: true
     deploy:
       resources:

@@ -14,15 +14,10 @@ build.py - Blender手冊RAG系統資料建立整合腳本
 """
 
 import time
-import sys
-from pathlib import Path
-
-# 匯入其他模組
-sys.path.append(str(Path(__file__).resolve().parent))
-import build_download
-import build_clean
-import build_vectorize
-import build_validate
+from scripts import build_download
+from scripts import build_clean
+from scripts import build_vectorize
+from scripts import build_validate
 
 
 def print_section_header(title):

@@ -20,8 +20,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
 
 # 導入專用模型加載模塊
-from . import model_embedding
-from . import model_faiss
+from scripts import model_embedding
+from scripts import model_faiss
 
 # 設定資料路徑
 BASE_DIR = Path(__file__).resolve().parent.parent
