@@ -12,7 +12,6 @@ api.py - Blender手冊RAG系統的API服務
 from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import uvicorn
 import opencc
 import time

@@ -91,6 +91,177 @@ curl -X POST http://localhost:11434/api/pull \
 
 ---
 
+# 使用方式
+
+Blender-Docs-RAG-Assistant 提供了一個簡單易用的 API，能夠輕鬆地將 Blender 手冊查詢功能整合到前端專案中。
+
+## API 端點
+
+API 伺服器運行於 `http://localhost:7860`，提供以下端點：
+
+| 端點      | 方法   | 說明                      |
+|----------|-------|--------------------------|
+| `/`      | GET   | 獲取 API 基本資訊與狀態      |
+| `/status`| GET   | 檢查服務是否已準備就緒        |
+| `/query` | GET   | 向 Blender 手冊提出查詢問題  |
+
+## `/`
+
+以下是使用 TypeScript 訪問根端點的示例代碼，返回 API 的基本信息：
+
+```typescript
+interface ApiEndpoint {
+  path: string;
+  method: string;
+  description: string;
+}
+
+interface ApiInfo {
+  service: string;
+  version: string;
+  status: string;
+  endpoints: ApiEndpoint[];
+}
+
+/**
+ * 獲取 Blender-RAG API 的基本信息
+ * @returns API 基本信息
+ */
+async function getApiInfo(): Promise<ApiInfo> {
+  const response = await fetch('http://localhost:7860/');
+  if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+  return await response.json() as ApiInfo;
+}
+
+// 使用示例
+getApiInfo()
+  .then(info => {
+    console.log(`服務名稱: ${info.service}`);
+    console.log(`版本: ${info.version}`);
+    console.log(`狀態: ${info.status}`);
+    console.log('可用端點:');
+    info.endpoints.forEach(endpoint => {
+      console.log(`- ${endpoint.path} (${endpoint.method}): ${endpoint.description}`);
+    });
+  })
+  .catch(error => console.error('獲取 API 信息時出錯:', error));
+```
+
+## `/status`
+
+在進行查詢前，建議先檢查服務是否已準備就緒：
+
+```typescript
+interface StatusResponse {
+  ready: boolean;
+  timestamp: number;
+  message: string;
+}
+
+/**
+ * 檢查 Blender-RAG API 服務狀態
+ * @returns 服務狀態信息
+ */
+async function checkApiStatus(): Promise<StatusResponse> {
+  const response = await fetch('http://localhost:7860/status');
+  if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+  return await response.json() as StatusResponse;
+}
+
+// 使用示例
+checkApiStatus()
+  .then(status => {
+    if (status.ready) {
+      console.log(`服務已就緒: ${status.message}`);
+      console.log(`時間戳: ${new Date(status.timestamp * 1000).toLocaleString()}`);
+      // 服務就緒，可以開始查詢
+      startQuerying();
+    } else {
+      console.log(`服務尚未就緒: ${status.message}`);
+      console.log('請稍後再試...');
+      // 可以設置定時器稍後再次檢查
+      setTimeout(checkApiStatus, 5000);
+    }
+  })
+  .catch(error => console.error('檢查 API 狀態時出錯:', error));
+```
+
+## `/query`
+
+API 提供的是 Server-Sent Events (SSE) 格式的流式回應，以下是使用 TypeScript 實現的查詢功能：
+
+```typescript
+interface QueryOptions {
+  onData?: (text: string) => void; // 接收流式數據的回調
+  onComplete?: () => void; // 數據流結束時的回調
+  onError?: (error: Error) => void; // 發生錯誤時的回調
+}
+
+/**
+ * 向 Blender RAG API 發送查詢並處理流式響應
+ * @param question 要查詢的問題
+ * @param options 查詢選項
+ * @returns 包含關閉連接方法的對象
+ */
+function queryBlenderRAG(question: string, options: QueryOptions = {}) {
+  // 預設選項
+  const {
+    onData = (text: string) => console.log(text),
+    onError = (error: Error) => console.error('查詢錯誤:', error),
+    onComplete = () => console.log('查詢完成'),
+  } = options;
+
+  // 編碼查詢參數
+  const encodedQuestion = encodeURIComponent(question);
+  const url = `http://localhost:7860/query?question=${encodedQuestion}`;
+
+  // 累積的回應文本
+  let fullResponse = '';
+
+  // 創建 EventSource 連接
+  const eventSource = new EventSource(url);
+
+  // 處理收到的數據
+  eventSource.onmessage = (event) => {
+    const text = event.data;
+    fullResponse += text;
+    onData(text);
+  };
+
+  // 處理連接完成
+  eventSource.onopen = () => {
+    console.log('SSE 連接已建立');
+  };
+
+  // 處理錯誤
+  eventSource.onerror = (error) => {
+    eventSource.close();
+    if (fullResponse) {
+      // 如果已收到部分回應，視為完成
+      onComplete();
+    } else {
+      // 否則視為錯誤
+      onError(new Error('SSE 連接錯誤'));
+    }
+  };
+
+  // 返回控制對象
+  return {
+    close: () => {
+      eventSource.close();
+      onComplete();
+    },
+    getFullResponse: () => fullResponse
+  };
+}
+```
+
+---
+
 # docker-compose.yml 概要
 
 ```yaml
