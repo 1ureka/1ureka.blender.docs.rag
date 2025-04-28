@@ -24,44 +24,63 @@ DATA_DIR = BASE_DIR / "data"
 INDEX_DIR = DATA_DIR / "index"
 
 
-def retrieve_relevant_chunks(query: str) -> List[Dict[str, Any]]:
-    """使用查詢來檢索最相關的文本塊"""
+def retrieve_relevant_texts(query: str) -> List[Dict[str, Any]]:
+    """使用查詢來檢索最相關的文本"""
     try:
         query_vector = model_embedding.encode_text([query])[0].astype("float32").reshape(1, -1)
         results = model_faiss.query_index(query_vector)
+        print("檢索到的相關文本:")
+        for i, result in enumerate(results):
+            print(f"結果 {i + 1}: 來源: {result['file']}, 相似度: {result['similarity']}")
         return results
     except Exception as e:
         print(f"查詢索引時發生錯誤: {e}")
         return []
 
 
-def build_prompt(query: str, chunks: List[Dict[str, Any]]) -> str:
+def build_prompt(query: str, texts: List[Dict[str, Any]]) -> str:
     """構建發送給LLM的prompt"""
     context_texts = []
-    for i, chunk in enumerate(chunks):
-        source = chunk["source"]
-        content = chunk["content"]
-        similarity = chunk["similarity"]
-
-        if similarity < 0.2:
+    for text in texts:
+        if text["similarity"] < 0.4:
             continue
 
         # 添加來源和內容到上下文
-        context_text = f"[文件 {i + 1}] 來源: {source}\n內容:\n{content}\n"
+        context_text = textwrap.dedent(f"""\
+            [文件 {text["file"]}]
+            與該問題的相關性: {text["similarity"]:.2f}
+            內容: {text["content"]}
+        """)
         context_texts.append(context_text)
 
     # 組合完整的prompt
+    context_texts_joined = "\n\n".join(context_texts)
     prompt = textwrap.dedent(f"""\
-        您是 Blender 軟體的專業助手，請基於以下參考文件的內容，用繁體中文回答我的問題。
-        如果參考文件中沒有足夠資訊，請坦誠表明無法回答，不要編造資訊。
-        請專注於回答與 Blender 相關的問題，若問題與 Blender 無關，請婉拒回答。
+        你是 Blender 官方手冊的專業導覽員，負責協助繁體中文使用者查詢 **Blender 4.2** 版功能與操作說明。
 
-        參考文件:
-        {"".join(context_texts)}
+        請注意以下規則：
+        - 必須**全程使用正體中文**回答，**不可混用簡體字**。
+        - 回答必須**僅根據提供的參考文件內容**，**不得引用未提供的外部資訊**。
+        - 如果參考文件中**無法找到足夠資訊**，請明確說明「**無法回答**」，**禁止推測或自行編造內容**。
+        - 如果問題與 Blender 無關，請禮貌地回應：「此問題超出 Blender 手冊的範圍，無法回答。」
 
-        我的問題是: {query}
+        系統根據問題找到的參考文件：
+        {context_texts_joined}
 
-        請提供詳細且實用的回答，使用繁體中文，並適當引用參考文件的內容。
+        特別指引：
+        - 請綜合所有參考文件內容進行回答，**避免僅依賴單一文件**，除非只有一份資料可用。
+        - 請根據現有文件內容，主動列出2～3個具體的後續提問範例（例如：「如何設定剛體物理效果？」「如何使用Subdivision Surface細分物件？」），
+          這些範例必須與參考文件中提及的功能相關，不得超出文件範圍自行假設。
+        - 若參考文件內容不足以提出2～3個具體提問，請酌情列出可行範例或略過此步驟。
+
+        最後請保持回答的：
+        - 條理清晰
+        - 使用 Blender 專有名詞時，儘量保留原文並加上中文說明（例如：「Subdivision Surface（細分曲面）」）
+
+        使用者的問題是：
+        {query}
+
+        請以專業且親切的態度，給出最適切且詳盡的回答。
     """)
     return prompt
 
@@ -71,14 +90,14 @@ def process_query(question: str, model_name: str = model_ollama.OLLAMA_MODEL):
     try:
         # 檢索相關文本塊
         print(f"正在處理問題: '{question}'")
-        relevant_chunks = retrieve_relevant_chunks(question)
+        relevant_texts = retrieve_relevant_texts(question)
 
-        if not relevant_chunks:
+        if not relevant_texts:
             yield "很抱歉，無法找到相關資訊。請嘗試重新表達您的問題，或檢查索引是否正確建立。"
             return
 
         # 構建prompt，向Ollama請求流式回答
-        prompt = build_prompt(question, relevant_chunks)
+        prompt = build_prompt(question, relevant_texts)
         print(f"向Ollama ({model_name}) 發送流式請求...")
         yield from model_ollama.query_ollama_stream(prompt, model_name)
 
