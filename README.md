@@ -1,7 +1,7 @@
-# 什麼是 Blender-Manual-RAG-Assistant？
+# 什麼是 Blender-Docs-RAG-Assistant？
 
 Blender 官方的繁體中文手冊，大部分仍都是英文，就算會英文，想出英文關鍵字查詢文件困難又耗時。
-Blender-Manual-RAG-Assistant 讓你可以直接用繁體中文提問，
+Blender-Docs-RAG-Assistant 讓你可以直接用繁體中文提問，
 快速從完整官方文件中找到答案，並以中文清楚回覆。
 
 ---
@@ -82,7 +82,7 @@ curl -X POST http://localhost:11434/api/pull \
 
 如果想更換其他模型：
 - 請參考 Ollama 官方的[模型列表](https://ollama.com/search)
-- 並修改 `scripts/query.py` 檔案中的 `OLLAMA_MODEL` 變數。
+- 並修改 `scripts/model_ollama.py` 檔案中的 `OLLAMA_MODEL` 變數。
 
 ## 注意事項
 
@@ -181,7 +181,7 @@ fastapi                  # 高效能 API 框架
 # 完整樹狀圖
 
 ```bash
-blender-rag-ai/
+blender.docs.rag/
 ├── app/
 │   └── api.py       # 提供查詢 API
 ├── data/
@@ -190,12 +190,15 @@ blender-rag-ai/
 │   ├── index/       # FAISS 向量資料庫
 │   └── ollama/      # Ollama 模型資料
 ├── scripts/
-│   ├── download.py  # 下載 Blender 官方手冊
-│   ├── clean.py     # HTML 清理成純文字
-│   ├── index.py     # 建立向量索引
-│   ├── validate.py  # 驗證向量索引
-│   ├── build.py     # 整合處理流程
-│   └── query.py     # 查詢與組 Prompt
+│   ├── build.py             # 主要整合腳本，統一協調處理流程
+│   ├── build_download.py    # 下載 Blender 官方手冊 ZIP 檔案
+│   ├── build_clean.py       # 將 HTML 轉換成純文字格式
+│   ├── build_vectorize.py   # 文本分段並建立向量索引
+│   ├── build_validate.py    # 驗證向量索引功能正確性
+│   ├── model_embedding.py   # 多語言向量嵌入模型管理
+│   ├── model_faiss.py       # FAISS 向量索引管理與查詢
+│   ├── model_ollama.py      # Ollama API 串接與處理
+│   └── query.py             # 查詢處理與 Prompt 組合
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt

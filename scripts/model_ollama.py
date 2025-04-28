@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-ollama.py - Ollama API 串接模組
+model_ollama.py - Ollama API 串接模組
 
 此腳本提供與 Ollama API 的通信功能，支援流式輸出和錯誤處理。
 """
