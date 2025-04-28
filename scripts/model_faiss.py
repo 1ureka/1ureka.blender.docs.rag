@@ -23,7 +23,7 @@ INDEX_DIR = DATA_DIR / "index"
 TEXT_DIR = DATA_DIR / "texts"
 
 # 每次查詢返回的最相關結果數量
-TOP_K = 10
+TOP_K = 12
 
 # 快取全局變數
 _index = None
@@ -179,7 +179,8 @@ def query_index(query_vector: np.ndarray, top_k: int = TOP_K) -> List[Dict[str, 
             with open(txt_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            name = Path(txt_path).name
+            p = Path(txt_path)
+            name = str(p.parent.name + "/" + p.name) if p.parent.name else p.name
             content = str(content)[:4500]  # 限制內容長度
             final_results.append({"file": name, "content": content, "similarity": similarity})
 
