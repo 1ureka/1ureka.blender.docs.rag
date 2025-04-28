@@ -12,7 +12,6 @@ vectorize.py - 為Blender官方手冊建立向量索引
 """
 
 import os
-import time
 import shutil
 import json
 from pathlib import Path
@@ -113,11 +112,7 @@ def chunk_text(text: str, file_path: str) -> List[Dict[str, str]]:
 
 def find_text_files(directory: Path) -> List[Path]:
     """遞迴尋找所有文字檔案"""
-    text_files = []
-    for path in directory.rglob("*.txt"):
-        if path.is_file():
-            text_files.append(path)
-    return text_files
+    return list(directory.rglob("*.txt"))
 
 
 def process_file(text_file: Path) -> List[Dict[str, str]]:
@@ -176,13 +171,10 @@ def main():
     total_files = len(text_files)
     print(f"找到 {total_files} 個文字檔案需要處理")
 
-    # 處理進度追蹤變數
-    processed = 0
+    # 初始化統計變數
     success = 0
     failed = 0
     all_chunks = []
-    start_time = time.time()
-    last_log_time = start_time  # 記錄上次輸出日誌的時間
 
     # 使用多線程處理檔案
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
@@ -191,7 +183,6 @@ def main():
 
         # 處理完成的任務
         for future in as_completed(future_to_file):
-            processed += 1
             try:
                 file_chunks = future.result()
                 if file_chunks:
@@ -202,22 +193,6 @@ def main():
             except Exception as e:
                 print(f"\n處理檔案時發生錯誤: {e}")
                 failed += 1
-
-            # 計算進度和速度
-            elapsed = time.time() - start_time
-            files_per_sec = processed / elapsed if elapsed > 0 else 0
-            remaining = (total_files - processed) / files_per_sec if files_per_sec > 0 else 0
-
-            # 更新進度顯示
-            percent = int(100 * processed / total_files)
-
-            # 每10秒記錄新的一行進度，或者達到100%時
-            current_time = time.time()
-            if current_time - last_log_time >= 10 or processed >= total_files:
-                print(
-                    f"處理進度: {percent}% [{processed}/{total_files}] 速度: {files_per_sec:.1f} 檔案/秒, 預估剩餘時間: {int(remaining)}秒"
-                )
-                last_log_time = current_time
 
     print("分段處理完成")
     print(f"成功處理: {success} 個檔案")
