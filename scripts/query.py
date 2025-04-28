@@ -80,7 +80,7 @@ def process_query(question: str, model_name: str = model_ollama.OLLAMA_MODEL):
         # 構建prompt，向Ollama請求流式回答
         prompt = build_prompt(question, relevant_chunks)
         print(f"向Ollama ({model_name}) 發送流式請求...")
-        return model_ollama.query_ollama_stream(prompt, model_name)
+        yield from model_ollama.query_ollama_stream(prompt, model_name)
 
     except Exception as e:
         error_msg = f"處理查詢時發生錯誤: {e}"

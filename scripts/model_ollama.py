@@ -32,9 +32,6 @@ def query_ollama_stream(prompt: str, model: str = OLLAMA_MODEL) -> Iterator[str]
             return
 
         for line in response.iter_lines():
-            if not line:
-                continue
-
             try:
                 data = json.loads(line.decode("utf-8"))
             except json.JSONDecodeError as e:
