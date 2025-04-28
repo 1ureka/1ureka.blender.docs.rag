@@ -13,7 +13,6 @@ build.py - Blender手冊RAG系統資料建立整合腳本
 作為一站式解決方案，這個腳本可以從頭開始建立整個RAG系統所需的資料。
 """
 
-import os
 import time
 import sys
 from pathlib import Path
@@ -25,12 +24,14 @@ import clean
 import index
 import validate
 
+
 def print_section_header(title):
     """印出區段標題"""
     line = "=" * 60
     print("\n" + line)
     print(f"  {title}")
     print(line + "\n")
+
 
 def main():
     """主函數 - 執行完整的處理流程"""
@@ -73,6 +74,7 @@ def main():
     print("您現在可以啟動服務並開始使用了。")
 
     return True
+
 
 if __name__ == "__main__":
     main()
