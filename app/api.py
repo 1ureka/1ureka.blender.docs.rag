@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
+import opencc
 import time
 
 from scripts import model_embedding
@@ -21,6 +22,7 @@ from scripts import model_faiss
 from scripts import query
 
 # 初始化 FastAPI 應用
+converter = opencc.OpenCC("s2t.json")  # 簡轉繁
 app = FastAPI(
     title="Blender手冊RAG API", description="透過RAG技術為Blender繁體中文使用者提供快速查詢服務", version="1.0.0"
 )
@@ -33,13 +35,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# 定義查詢請求的數據模型
-class QueryRequest(BaseModel):
-    question: str
-    model: str = "gemma3:4b-it-q8_0"  # 默認使用 gemma3:4b-it-q8_0 模型
-
 
 # 服務狀態標誌
 SERVICE_READY = False
@@ -106,7 +101,7 @@ async def handle_query(
         # 將每個文本塊轉換為SSE格式的事件
         def stream_response():
             for text_chunk in query.process_query(question, model):
-                safe_chunk = text_chunk.replace("\n", "\\n")
+                safe_chunk = converter.convert(text_chunk).replace("\n", "\\n")
                 yield f"data: {safe_chunk}\n\n"
 
         # 返回流式響應

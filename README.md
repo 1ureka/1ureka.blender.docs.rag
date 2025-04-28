@@ -174,6 +174,7 @@ torch
 transformers
 uvicorn                  # 輕量級 ASGI 伺服器
 fastapi                  # 高效能 API 框架
+opencc                   # 萬一AI仍不小心返回簡體，轉換成繁體中文
 ```
 
 ---
