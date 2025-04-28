@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent))
 import download
 import clean
-import index
+import vectorize
 import validate
 
 
@@ -53,7 +53,7 @@ def main():
 
     # 步驟 3: 建立向量索引
     print_section_header("步驟 3/4: 建立向量索引")
-    if not index.main():
+    if not vectorize.main():
         print("錯誤: 建立索引失敗，處理中止")
         return False
 

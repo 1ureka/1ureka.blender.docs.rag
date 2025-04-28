@@ -44,7 +44,7 @@ def load_model() -> Optional[SentenceTransformer]:
         return None
 
 
-def encode_text(texts, show_progress=False):
+def encode_text(texts):
     """將文本編碼為向量
 
     Args:
@@ -58,4 +58,4 @@ def encode_text(texts, show_progress=False):
     if model is None:
         raise RuntimeError("模型載入失敗，無法編碼文本")
 
-    return model.encode(texts, show_progress_bar=show_progress)
+    return model.encode(texts, show_progress_bar=False)
