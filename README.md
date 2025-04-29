@@ -93,9 +93,21 @@ curl -X POST http://localhost:11434/api/pull \
 
 # 使用方式
 
-Blender-Docs-RAG-Assistant 提供了一個簡單易用的 API，能夠輕鬆地將 Blender 手冊查詢功能整合到前端專案中。
+## 1. 搭配 Web UI 使用
 
-## API 端點
+Blender-Docs-RAG-Assistant 預設提供 API 介面，若希望透過網頁介面查詢（無需撰寫程式或使用 curl），
+可搭配公開部署的前端網站使用：
+
+👉 [Blender-RAG-Assistant Web UI](https://1ureka.github.io/assistant)
+
+開啟後，若有更換過部屬位址，請點選左下角的「設定」按鈕，輸入本機 API 的位址（例如 `http://localhost:7860` 或區網 IP 位址），即可開始查詢。
+
+此 UI 設計為開放式用法，適合：
+- 在多台設備上存取自己部屬的 API（例如透過 Hamachi 或區網分享）
+- 展示與操作 Blender 文件的中文查詢介面
+- 不想撰寫額外前端的人快速體驗查詢效果
+
+## 2. 使用 API 端點
 
 API 伺服器運行於 `http://localhost:7860`，提供以下端點：
 
