@@ -9,6 +9,7 @@ api.py - Blender手冊RAG系統的API服務
 啟動完成前，會禁止回應，並且透過/status可知道目前是否準備完成。
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,8 +23,42 @@ from scripts import query
 
 # 初始化 FastAPI 應用
 converter = opencc.OpenCC("s2t.json")  # 簡轉繁
+SERVICE_READY = False  # 服務狀態標誌
+
+
+# 在應用啟動時預載入模型和索引
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global SERVICE_READY
+    try:
+        print("正在載入向量嵌入模型...")
+        model_embedding.load_model()
+
+        print("正在載入FAISS索引...")
+        model_faiss.load_model()
+
+        print("正在載入Ollama模型中...")
+        try:
+            next(query.process_query("你好"))
+        except Exception:
+            pass
+
+        print("API服務準備就緒!")
+        SERVICE_READY = True
+
+        yield  # 等待應用關閉（如 Ctrl+C）
+
+        print("正在關閉...")
+    except Exception as e:
+        print(f"啟動服務時發生錯誤: {e}")
+        yield  # 即使錯誤也讓 API 啟動，方便看到狀態錯誤頁
+
+
 app = FastAPI(
-    title="Blender手冊RAG API", description="透過RAG技術為Blender繁體中文使用者提供快速查詢服務", version="1.0.0"
+    title="Blender手冊RAG API",
+    description="透過RAG技術為Blender繁體中文使用者提供快速查詢服務",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # 添加CORS支援，使API可以被前端頁面調用
@@ -34,27 +69,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 服務狀態標誌
-SERVICE_READY = False
-
-
-# 在應用啟動時預加載模型和索引
-@app.on_event("startup")
-async def startup_event():
-    global SERVICE_READY
-    try:
-        print("正在加載向量嵌入模型...")
-        model_embedding.load_model()
-
-        print("正在加載FAISS索引...")
-        model_faiss.load_model()
-
-        print("API服務準備就緒!")
-        SERVICE_READY = True
-    except Exception as e:
-        print(f"啟動服務時發生錯誤: {e}")
-        # 不設置 SERVICE_READY = True，服務將保持未就緒狀態
 
 
 @app.get("/")
@@ -67,7 +81,7 @@ async def root():
         "endpoints": [
             {"path": "/", "method": "GET", "description": "API資訊"},
             {"path": "/status", "method": "GET", "description": "檢查服務狀態"},
-            {"path": "/query", "method": "POST", "description": "查詢Blender手冊"},
+            {"path": "/query", "method": "GET", "description": "查詢Blender手冊"},
         ],
     }
 
