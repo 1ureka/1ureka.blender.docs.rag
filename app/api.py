@@ -4,54 +4,60 @@
 """
 api.py - Blender手冊RAG系統的API服務
 
-此腳本提供基於FastAPI的HTTP API服務，允許用戶通過HTTP請求查詢Blender手冊，
-並獲得基於RAG系統的中文回答。服務會在啟動時預載向量模型和索引，
-啟動完成前，會禁止回應，並且透過/status可知道目前是否準備完成。
+此腳本提供基於FastAPI的HTTP API服務，允許用戶通過HTTP請求查詢Blender手冊。
 """
 
+from typing import Literal
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Request, Query
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 import opencc
-import time
+import asyncio
+import logging
 
 from scripts import model_embedding
 from scripts import model_faiss
 from scripts import query
 
-# 初始化 FastAPI 應用
+# 全局變數
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 converter = opencc.OpenCC("s2t.json")  # 簡轉繁
-SERVICE_READY = False  # 服務狀態標誌
+tag: Literal["idle", "loading", "error", "ok"] = "idle"  # 服務狀態標誌
 
 
-# 在應用啟動時預載入模型和索引
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global SERVICE_READY
+def load_models_sync():
+    """預載入模型和索引(同步)"""
+    global tag
     try:
-        print("正在載入向量嵌入模型...")
+        tag = "loading"
+        logger.info("正在載入向量嵌入模型與FAISS索引...")
         model_embedding.load_model()
-
-        print("正在載入FAISS索引...")
         model_faiss.load_model()
 
-        print("正在載入Ollama模型中...")
-        try:
-            next(query.process_query("你好"))
-        except Exception:
-            pass
+        logger.info("正在載入Ollama模型中...")
+        next(query.process_query("你好"))
 
-        print("API服務準備就緒!")
-        SERVICE_READY = True
-
-        yield  # 等待應用關閉（如 Ctrl+C）
-
-        print("正在關閉...")
+        logger.info("模型準備就緒!")
+        tag = "ok"
     except Exception as e:
-        print(f"啟動服務時發生錯誤: {e}")
-        yield  # 即使錯誤也讓 API 啟動，方便看到狀態錯誤頁
+        logger.info(f"載入模型時發生錯誤: {e}")
+        tag = "error"
+
+
+async def load_models():
+    """預載入模型和索引(異步)"""
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, load_models_sync)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """在應用啟動時預載入模型和索引"""
+    asyncio.create_task(load_models())
+    logger.info("API服務啟動中...")
+    yield
 
 
 app = FastAPI(
@@ -77,33 +83,20 @@ async def root():
     return {
         "service": "Blender手冊RAG API",
         "version": "1.0.0",
-        "status": "運行中" if SERVICE_READY else "正在初始化",
+        "status": tag,
         "endpoints": [
-            {"path": "/", "method": "GET", "description": "API資訊"},
-            {"path": "/status", "method": "GET", "description": "檢查服務狀態"},
+            {"path": "/", "method": "GET", "description": "API服務狀態與資訊"},
             {"path": "/query", "method": "GET", "description": "查詢Blender手冊"},
         ],
     }
 
 
-@app.get("/status")
-async def check_status():
-    """檢查服務狀態"""
-    return {
-        "ready": SERVICE_READY,
-        "timestamp": time.time(),
-        "message": "服務已就緒，可以接受查詢" if SERVICE_READY else "服務正在初始化，請稍後再試",
-    }
-
-
 @app.get("/query")
-async def handle_query(
-    question: str = Query(..., description="提問問題"), model: str = Query("gemma3:4b-it-q8_0", description="使用模型")
-):
+async def handle_query(question: str = Query(..., description="提問問題")):
     """處理Blender手冊查詢請求"""
     # 檢查服務是否就緒
-    if not SERVICE_READY:
-        raise HTTPException(status_code=503, detail="服務正在初始化中，請稍後再試")
+    if tag != "ok":
+        raise HTTPException(status_code=503, detail="服務正在啟動中，請稍後再試")
 
     # 檢查查詢文本是否為空
     if not question or question.strip() == "":
@@ -113,7 +106,7 @@ async def handle_query(
     try:
         # 將每個文本塊轉換為SSE格式的事件
         def stream_response():
-            for text_chunk in query.process_query(question, model):
+            for text_chunk in query.process_query(question):
                 safe_chunk = converter.convert(text_chunk).replace("\n", "\\n")
                 yield f"data: {safe_chunk}\n\n"
 
@@ -121,27 +114,3 @@ async def handle_query(
         return StreamingResponse(stream_response(), media_type="text/event-stream")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"處理查詢時發生錯誤: {str(e)}")
-
-
-# 為所有請求添加處理中間件
-@app.middleware("http")
-async def check_readiness(request: Request, call_next):
-    """確保服務就緒後才處理查詢請求"""
-    # 允許直接訪問狀態和根端點，即使服務未就緒
-    if request.url.path in ["/status", "/"]:
-        return await call_next(request)
-
-    # 對於其他端點，如果服務未就緒則返回503錯誤
-    if not SERVICE_READY and request.url.path != "/status":
-        return JSONResponse(status_code=503, content={"detail": "服務正在初始化中，請稍後再試"})
-
-    # 處理請求
-    try:
-        return await call_next(request)
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"detail": f"處理請求時發生錯誤: {str(e)}"})
-
-
-# 直接運行此文件時執行的代碼
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=7860)
