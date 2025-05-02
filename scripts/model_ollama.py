@@ -9,12 +9,34 @@ model_ollama.py - Ollama API 串接模組
 
 import json
 import requests
-from typing import Iterator
+from typing import Iterator, Optional
 
 # 設定 Ollama 相關參數
 OLLAMA_API_URL = "http://ollama:11434/api/generate"
 OLLAMA_MODEL = "gemma3:4b-it-q8_0"  # 默認使用的模型名稱
 OLLAMA_CONTEXT_LENGTH = 8192 * 2  # Ollama模型的上下文長度限制
+
+
+def query_ollama(prompt: str, model: str = OLLAMA_MODEL) -> Optional[str]:
+    """
+    向Ollama API發送非流式請求並返回完整回答
+    """
+    try:
+        payload = {"model": model, "prompt": prompt, "stream": False, "options": {"num_ctx": OLLAMA_CONTEXT_LENGTH}}
+        response = requests.post(OLLAMA_API_URL, json=payload)
+
+        if response.status_code != 200:
+            error_msg = f"Ollama API請求失敗: HTTP {response.status_code} - {response.text}"
+            print(error_msg)
+            return None
+
+        data = response.json()
+        return data.get("response", "")
+
+    except Exception as e:
+        error_msg = f"Ollama API請求過程中發生錯誤: {str(e)}"
+        print(error_msg)
+        return None
 
 
 def query_ollama_stream(prompt: str, model: str = OLLAMA_MODEL) -> Iterator[str]:
