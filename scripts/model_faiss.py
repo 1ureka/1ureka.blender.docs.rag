@@ -23,7 +23,7 @@ INDEX_DIR = DATA_DIR / "index"
 TEXT_DIR = DATA_DIR / "texts"
 
 # 每次查詢返回的最相關結果數量
-TOP_K = 12
+TOP_K = 15
 
 # 快取全局變數
 _index = None
