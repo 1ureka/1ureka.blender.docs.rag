@@ -49,9 +49,15 @@ docker compose --profile build up blender-rag-build
 - 首次使用必須先執行 `build`
 - 若 Blender 手冊有更新，重新 `build`即可
 
-## 2. 拉取模型
+## 2. Deploy：啟動服務
 
-第一次部屬前，Ollama 服務預設沒有任何模型，需要先拉取，之後會使用快取在 `data/ollama/`的模型。
+```bash
+docker compose up
+```
+
+### 第一次部屬
+
+第一次部屬時，Ollama 服務預設沒有任何模型，會看到錯誤，這是正常的，需要先拉取，之後會使用快取在 `data/ollama/`的模型。
 
 程式碼預設使用的模型是：
 
@@ -71,11 +77,9 @@ curl -X POST http://localhost:11434/api/pull \
 - 請參考 Ollama 官方的[模型列表](https://ollama.com/search)
 - 並修改 `scripts/model_ollama.py` 檔案中的 `OLLAMA_MODEL` 變數。
 
-## 3. Deploy：啟動服務
+拉取模型後，請重新啟動服務。
 
-```bash
-docker compose up
-```
+### 後續部屬
 
 啟動內容：
 - 啟動 Ollama 服務 (http://localhost:11434)
